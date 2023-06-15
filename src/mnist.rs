@@ -24,13 +24,12 @@ TRAINING SET IMAGE FILE (train-images-idx3-ubyte):
 ........
 xxxx     unsigned byte   ??               pixel
 */
+
 use std::io::{Read, Seek, SeekFrom};
 use std::fs::File;
+use ndarray::Array1;
 
-//use ndarray::prelude::*;
-use ndarray::Array2;
-
-pub fn load_train_img(idx: &u32) -> Array2<f32> {
+pub fn load_train_img(idx: &u32) -> Array1<f32> {
     let offset = 16 + (784 * idx);
     let mut buf = [0u8; 784];
     let mut file = File::open("dataset/digs/train-images-idx3-ubyte")
@@ -39,6 +38,7 @@ pub fn load_train_img(idx: &u32) -> Array2<f32> {
     file.read_exact(&mut buf).expect("Error reading file");
     let norm = norm(buf);
     
+    // Debug loop to print loaded data
     // for i in 0..784 {
     //     if i % 28 == 0 {
     //         println!();
@@ -46,11 +46,9 @@ pub fn load_train_img(idx: &u32) -> Array2<f32> {
     //     print!("{:.1} ", norm[i]);
     // }
 
-    let mut img: Array2<f32> = Array2::zeros((28, 28));
-    for i in 0..28 {
-        for j in 0..28 {
-            img[[i, j]] = norm[i*28 + j];
-        }
+    let mut img: Array1<f32> = Array1::zeros(784);
+    for i in 0..784 {
+        img[i] = norm[i];
     }
     return img;
 }
