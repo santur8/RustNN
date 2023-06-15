@@ -2,8 +2,21 @@
 use ndarray::Array1;
 mod mnist;
 use mnist::*;
+use neuralnet::*;
+mod neuralnet;
 
 fn main() {
+    //test_load();
+    test_init_nn();
+}
+
+fn test_init_nn() {
+    let v: Vec<usize> = vec![2, 3, 4];
+    let mut net = init_nn(&v);
+    seed_nn(&mut net);
+}
+
+fn test_load() {
     let idx = 784;
     let input: Array1<f32> = load_train_img(&idx);
     print_input(input);
