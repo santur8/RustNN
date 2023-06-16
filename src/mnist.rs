@@ -38,7 +38,7 @@ pub fn load_train_img(idx: &u32) -> Array1<f32> {
     file.read_exact(&mut buf).expect("Error reading file");
     let norm = norm(buf);
     
-    // Debug loop to print loaded data
+    // Debug print loop to print loaded data
     // for i in 0..784 {
     //     if i % 28 == 0 {
     //         println!();
