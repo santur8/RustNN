@@ -15,7 +15,57 @@ pub struct NeuralNet {
     layers: Vec<Layer> 
 }
 
-pub fn init_nn(lengths: &Vec<usize>) -> NeuralNet {
+impl NeuralNet {
+    /* randomize weights for each layer in nn */
+    pub fn seed_weights(&mut self) {
+        let mut rng = rand::thread_rng();
+        for layer in self.layers.iter_mut() {
+            for i in 0..layer.len {
+                for j in 0..layer.incoming {
+                    layer.weights[[i, j]] = rng.gen_range(0.0..1.0);
+                }
+            }
+        }
+    }
+
+    /* load specified layer's neurons with values of input */
+    pub fn load_neurons(&mut self, layer_idx: usize, input: Array1<f32>) {
+        if layer_idx >= self.size {
+            eprintln!("Invalid layer index. Exiting.");
+            std::process::exit(-1);
+        }
+        let layer = &mut self.layers[layer_idx];
+        if layer.len != input.len() {
+            eprintln!("Invalid length for neuron load. Exiting.");
+            std::process::exit(-1);
+        }
+        layer.neurons = input;
+    }
+
+    /* propagate network's values forward */
+    pub fn feed_forward(&mut self) {
+        for layer_idx in 1..self.size {
+            let len = &self.layers[layer_idx].len;
+            for neuron_idx in 0..*len {
+                let input = &self.layers[layer_idx-1].neurons;
+                let weights = &self.layers[layer_idx].weights.row(neuron_idx);
+                let prod = weights.dot(input);
+                self.layers[layer_idx].neurons[neuron_idx] = prod;
+            }
+        }
+    }
+
+    /* print output layer of network */
+    pub fn print_output(&self) {
+        let layer = &self.layers[self.size-1];
+        for value in &layer.neurons {
+            print!("{}, ", value);
+        }
+        println!();
+    }
+}
+
+pub fn init_nn(lengths: Vec<usize>) -> NeuralNet {
     if lengths.len() < 2 {
         eprintln!("Invalid neural net size. Exiting.");
         std::process::exit(-1);
@@ -39,37 +89,4 @@ pub fn init_nn(lengths: &Vec<usize>) -> NeuralNet {
         net.layers.push(layer);
     }
     return net;
-}
-
-
-pub fn seed_nn_weights(net: &mut NeuralNet) {
-    // randomize weights for each layer in nn
-    let mut rng = rand::thread_rng();
-    for layer in net.layers.iter_mut() {
-        for i in 0..layer.len {
-            for j in 0..layer.incoming {
-                layer.weights[[i, j]] = rng.gen_range(0.0..1.0);
-            }
-        }
-    }
-}
-
-pub fn load_input(net: &mut NeuralNet, input: Array1<f32>) {
-    let mut layer = &mut net.layers[0];
-    if layer.neurons.len() != input.len() {
-        eprintln!("Invalid length for input layer. Exiting.");
-        std::process::exit(-1);
-    }
-    layer.neurons = input;
-}
-
-pub fn feed_forward(net: &mut NeuralNet) {
-    for layer_idx in 1..net.size {
-        let len = net.layers[layer_idx].len;
-        for neuron_idx in 0..len {
-            let input = &net.layers[layer_idx-1].neurons;
-            let weights = &net.layers[layer_idx].weights.row(neuron_idx);
-            let weights = weights.into_shape((len,1)).unwrap();
-        }
-    }
 }

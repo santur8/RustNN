@@ -7,16 +7,27 @@ use neuralnet::*;
 mod neuralnet;
 
 fn main() {
-    //test_load();
-    test_init_nn();
+    //_test_load();
+    //_test_init_nn();
+    _train_mnist();
 }
 
-fn test_init_nn() {
-    let v: Vec<usize> = vec![2, 2, 1];
-    let mut net = init_nn(&v);
-    seed_nn_weights(&mut net);
-    let input: Array1<f32> = array![0.5, 0.25];
-    load_input(&mut net, input);
+fn _train_mnist() {
+    let idx = 100;
+    let input = load_train_img(&idx);
+    let mut net = init_nn(vec![784, 16, 16, 10]);
+    net.load_neurons(0, input);
+    net.seed_weights();
+    net.feed_forward();
+    net.print_output();
+}
+
+fn _test_init_nn() {
+    let mut net = init_nn(vec![2, 2, 1]);
+    net.seed_weights();
+    net.load_neurons(0, array![0.5, 0.25]);
+    net.feed_forward();
+    net.feed_forward()
 }
 
 fn _test_load() {
