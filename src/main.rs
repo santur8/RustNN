@@ -19,7 +19,8 @@ fn _train_mnist() {
     net.load_neurons(0, input);
     net.seed_weights();
     net.feed_forward();
-    net.print_output();
+    net.print_neurons(0);
+    net.print_neurons(3);
 }
 
 fn _test_init_nn() {

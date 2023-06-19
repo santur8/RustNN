@@ -50,15 +50,19 @@ impl NeuralNet {
                 let input = &self.layers[layer_idx-1].neurons;
                 let weights = &self.layers[layer_idx].weights.row(neuron_idx);
                 let prod = weights.dot(input);
+                let prod = sigmoid(prod);
                 self.layers[layer_idx].neurons[neuron_idx] = prod;
             }
         }
     }
 
     /* print output layer of network */
-    pub fn print_output(&self) {
-        let layer = &self.layers[self.size-1];
-        for value in &layer.neurons {
+    pub fn print_neurons(&self, layer_idx: usize) {
+        if layer_idx >= self.size {
+            eprintln!("Invalid layer index. Exiting.");
+            std::process::exit(-1); 
+        }
+        for value in &self.layers[layer_idx].neurons {
             print!("{}, ", value);
         }
         println!();
@@ -89,4 +93,8 @@ pub fn init_nn(lengths: Vec<usize>) -> NeuralNet {
         net.layers.push(layer);
     }
     return net;
+}
+
+fn sigmoid(val: f32) -> f32 {
+    return 1.0 / (1.0 + (-val).exp());
 }
