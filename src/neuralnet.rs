@@ -67,6 +67,21 @@ impl NeuralNet {
         }
         println!();
     }
+
+    /* return mse of output layer with expected neuron to fire */
+    pub fn mse(&self, expected: usize) -> f32 {
+        let output = &self.layers[self.size-1].neurons;
+        let mut err: f32 = 0.0;
+        for i in 0..output.len() {
+            if i != expected {
+                err += (0.0 - output[i]).powf(2.0);
+            } else {
+                err += (1.0 - output[i]).powf(2.0);
+            }
+        }
+        let err = err / 10.0;
+        return err;
+    }
 }
 
 pub fn init_nn(lengths: Vec<usize>) -> NeuralNet {
