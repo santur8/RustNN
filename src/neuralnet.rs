@@ -11,12 +11,12 @@ struct Layer {
     weights: Array2<f32>,      // weights for previous layer
     weights_grad: Array2<f32>, // partial derivatives for error with respect to each weight
     bias_weights: Array1<f32>, // weights for constant 1 bias
-    learning_rate: f32
 }
 
 pub struct NeuralNet {
     size: usize,                 // number of layers
-    layers: Vec<Layer> 
+    layers: Vec<Layer>,
+    learning_rate: f32
 }
 
 impl NeuralNet {
@@ -118,9 +118,32 @@ impl NeuralNet {
             }
             //println!("{:?}", layers[layer_idx].errors);
         }
+
+        // update partial derivs for each weight
+        for layer_idx in (1..self.size).rev() {
+            for neuron_idx in 0..layers[layer_idx].len {
+                for weight_idx in 0..layers[layer_idx].incoming {
+                    let grad = layers[layer_idx].errors[neuron_idx] * layers[layer_idx-1].output[weight_idx];
+                    layers[layer_idx].weights_grad[[neuron_idx, weight_idx]] += grad;
+                    // this prob wrong
+                }
+            }
+            //println!("{:?}\n", layers[layer_idx].weights_grad);
+        }
     }
 
-    
+    pub fn backprop_update(&mut self, num_iter: f32) {
+        let layers = &mut self.layers;
+        for layer_idx in 1..self.size {
+            for idx in 0..layers[layer_idx].len {
+                for jdx in 0..layers[layer_idx].incoming {
+                    let prod = layers[layer_idx].weights_grad[[idx, jdx]] / num_iter;
+                    layers[layer_idx].weights[[idx, jdx]] = prod * self.learning_rate;
+                    layers[layer_idx].weights_grad[[idx, jdx]] = 0.0;
+                }
+            }
+        }
+    }
 }
 
 pub fn init_nn(lengths: Vec<usize>) -> NeuralNet {
@@ -128,7 +151,7 @@ pub fn init_nn(lengths: Vec<usize>) -> NeuralNet {
         eprintln!("Invalid neural net size. Exiting.");
         std::process::exit(-1);
     }
-    let mut net = NeuralNet { size: lengths.len(), layers: std::vec!{} };
+    let mut net = NeuralNet { size: lengths.len(), layers: std::vec!{}, learning_rate: 0.01 };
     for i in 0..lengths.len() {
         let mut prev = 0;
         if i != 0 {
@@ -143,7 +166,6 @@ pub fn init_nn(lengths: Vec<usize>) -> NeuralNet {
             weights: Array2::zeros((lengths[i], prev)),
             weights_grad: Array2::zeros((lengths[i], prev)),
             bias_weights: Array1::zeros(lengths[i]),
-            learning_rate: 0.01,
         };
         net.layers.push(layer);
     }

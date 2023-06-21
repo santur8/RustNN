@@ -62,13 +62,19 @@ fn norm(buf: [u8; 784]) -> [f32; 784] {
     return norm_buf;
 }
 
-pub fn load_train_label(idx: &u32) -> u32 {
+pub fn load_train_label(idx: &u32) -> usize {
     let offset = 8 + idx;
     let mut buf = [0u8; 1];
     let mut file = File::open("dataset/digs/train-labels-idx1-ubyte")
         .expect("Invalid path");
     let _ = file.seek(SeekFrom::Start(u64::from(offset)));
     file.read_exact(&mut buf).expect("Error reading file");
-    let label = u32::from(buf[0]);
+    let label = usize::from(buf[0]);
     return label;
+}
+
+pub fn gen_exp_output(label: usize) -> Array1<f32> {
+    let mut arr: Array1<f32> = Array1::zeros(10);
+    arr[label] = 1.0;
+    return arr;
 }

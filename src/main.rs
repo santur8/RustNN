@@ -13,17 +13,18 @@ fn main() {
 }
 
 fn _train_mnist() {
-    let idx = 100;
-    let input = load_train_img(&idx);
     let mut net = init_nn(vec![784, 16, 16, 10]);
-    net.load_neurons(0, input);
     net.seed_weights();
-    net.feed_forward();
-    //net.print_neurons(0);
-    net.print_output(3);
-    let exp = Array1::from(array![0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]);
-    println!("MSE: {}", net.mse(&exp));
-    net.backprop(&exp);
+    for idx in 0..60000 {
+        let input = load_train_img(&idx);
+        let label = load_train_label(&idx);
+        net.load_neurons(0, input);
+        net.feed_forward();
+        let exp = gen_exp_output(label);
+        println!("MSE: {}", net.mse(&exp));
+        net.backprop(&exp);
+        net.backprop_update(1.0);
+    }
 }
 
 fn _test_init_nn() {
