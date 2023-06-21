@@ -5,9 +5,13 @@ use rand::Rng;
 struct Layer {
     len: usize,                  // number of neurons in layer
     incoming: usize,             // number of neurons in prev layer
-    neurons: Array1<f32>,      // activations of current layer
+    activations: Array1<f32>,    // activations of current layer * PRE SIGMOID *
+    output: Array1<f32>,         // activations of current layer * POST SIGMOID *
+    errors: Array1<f32>,       // error terms for each neuron in layer
     weights: Array2<f32>,      // weights for previous layer
-    bias: Array2<f32>          // bias for previous layer
+    weights_grad: Array2<f32>, // partial derivatives for error with respect to each weight
+    bias_weights: Array1<f32>, // weights for constant 1 bias
+    learning_rate: f32
 }
 
 pub struct NeuralNet {
@@ -21,14 +25,15 @@ impl NeuralNet {
         let mut rng = rand::thread_rng();
         for layer in self.layers.iter_mut() {
             for i in 0..layer.len {
+                layer.bias_weights[i] = rng.gen_range(-1.0..1.0);
                 for j in 0..layer.incoming {
-                    layer.weights[[i, j]] = rng.gen_range(0.0..1.0);
+                    layer.weights[[i, j]] = rng.gen_range(-1.0..1.0);
                 }
             }
         }
     }
 
-    /* load specified layer's neurons with values of input */
+    /* load specified layer's outputs with values of input */
     pub fn load_neurons(&mut self, layer_idx: usize, input: Array1<f32>) {
         if layer_idx >= self.size {
             eprintln!("Invalid layer index. Exiting.");
@@ -39,7 +44,7 @@ impl NeuralNet {
             eprintln!("Invalid length for neuron load. Exiting.");
             std::process::exit(-1);
         }
-        layer.neurons = input;
+        layer.output = input;
     }
 
     /* propagate network's values forward */
@@ -47,41 +52,75 @@ impl NeuralNet {
         for layer_idx in 1..self.size {
             let len = &self.layers[layer_idx].len;
             for neuron_idx in 0..*len {
-                let input = &self.layers[layer_idx-1].neurons;
+                let input = &self.layers[layer_idx-1].output;
                 let weights = &self.layers[layer_idx].weights.row(neuron_idx);
-                let prod = weights.dot(input);
-                let prod = sigmoid(prod);
-                self.layers[layer_idx].neurons[neuron_idx] = prod;
+                let mut prod = weights.dot(input);
+                //prod += 1.0 * &self.layers[layer_idx].bias_weights[neuron_idx];
+                self.layers[layer_idx].activations[neuron_idx] = prod;
+                prod = sigmoid(prod);
+                self.layers[layer_idx].output[neuron_idx] = prod;
             }
         }
     }
 
-    /* print output layer of network */
-    pub fn print_neurons(&self, layer_idx: usize) {
+    /* print layer of network */
+    pub fn print_output(&self, layer_idx: usize) {
         if layer_idx >= self.size {
             eprintln!("Invalid layer index. Exiting.");
             std::process::exit(-1); 
         }
-        for value in &self.layers[layer_idx].neurons {
+        for value in &self.layers[layer_idx].output {
             print!("{}, ", value);
         }
         println!();
     }
 
-    /* return mse of output layer with expected neuron to fire */
-    pub fn mse(&self, expected: usize) -> f32 {
-        let output = &self.layers[self.size-1].neurons;
+    /* return mse given expected output values */
+    pub fn mse(&self, expected: &Array1<f32>) -> f32 {
+        if expected.len() != self.layers[self.size-1].output.len() {
+            eprintln!("Expected vector does not match output layer size. Exiting.");
+            std::process::exit(-1); 
+        }
+        let out = &self.layers[self.size-1].output;
         let mut err: f32 = 0.0;
-        for i in 0..output.len() {
-            if i != expected {
-                err += (0.0 - output[i]).powf(2.0);
-            } else {
-                err += (1.0 - output[i]).powf(2.0);
-            }
+        for i in 0..out.len() {
+            err += (expected[i] - out[i]).powf(2.0);
         }
         let err = err / 10.0;
         return err;
     }
+
+    /* given expected output layer, update weights according to  */
+    pub fn backprop(&mut self, expected: &Array1<f32>) {
+        if expected.len() != self.layers[self.size-1].activations.len() {
+            eprintln!("Expected vector does not match output layer size. Exiting.");
+            std::process::exit(-1); 
+        }
+
+        // output layer backwards phase
+        let layers = &mut self.layers;
+        let output_layer = &mut layers[self.size-1];
+        for idx in 0..output_layer.len {
+            // calculate error term for output layer
+            let mut err = output_layer.output[idx] - expected[idx];
+            err *= sigmoid_prime(output_layer.activations[idx]);
+            output_layer.errors[idx] = err;
+        }
+        //println!("{:?}", output_layer.errors);
+
+        // propagate error terms for previous layers
+        for layer_idx in (1..self.size-1).rev() {
+            for idx in 0..layers[layer_idx].len {
+                let weights = &layers[layer_idx+1].weights.column(idx);
+                let errors = &layers[layer_idx+1].errors;
+                let err = weights.dot(errors) * sigmoid_prime(layers[layer_idx].activations[idx]);
+                layers[layer_idx].errors[idx] = err;
+            }
+            //println!("{:?}", layers[layer_idx].errors);
+        }
+    }
+
+    
 }
 
 pub fn init_nn(lengths: Vec<usize>) -> NeuralNet {
@@ -89,7 +128,6 @@ pub fn init_nn(lengths: Vec<usize>) -> NeuralNet {
         eprintln!("Invalid neural net size. Exiting.");
         std::process::exit(-1);
     }
-
     let mut net = NeuralNet { size: lengths.len(), layers: std::vec!{} };
     for i in 0..lengths.len() {
         let mut prev = 0;
@@ -99,12 +137,14 @@ pub fn init_nn(lengths: Vec<usize>) -> NeuralNet {
         let layer = Layer {
             len: lengths[i],
             incoming: prev,
-            neurons: Array1::zeros(lengths[i]),
+            activations: Array1::zeros(lengths[i]),
+            output: Array1::zeros(lengths[i]),
+            errors: Array1::zeros(lengths[i]),
             weights: Array2::zeros((lengths[i], prev)),
-            bias: Array2::zeros((lengths[i], prev))
+            weights_grad: Array2::zeros((lengths[i], prev)),
+            bias_weights: Array1::zeros(lengths[i]),
+            learning_rate: 0.01,
         };
-        //println!("{:?}", layer);
-        //println!();
         net.layers.push(layer);
     }
     return net;
@@ -112,4 +152,9 @@ pub fn init_nn(lengths: Vec<usize>) -> NeuralNet {
 
 fn sigmoid(val: f32) -> f32 {
     return 1.0 / (1.0 + (-val).exp());
+}
+
+fn sigmoid_prime(val: f32) -> f32 {
+    let sig = sigmoid(val);
+    return sig * (1.0 - sig);
 }

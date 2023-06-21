@@ -9,8 +9,7 @@ mod neuralnet;
 fn main() {
     //_test_load();
     //_test_init_nn();
-    //_train_mnist();
-    _test_mse();
+    _train_mnist();
 }
 
 fn _train_mnist() {
@@ -20,8 +19,11 @@ fn _train_mnist() {
     net.load_neurons(0, input);
     net.seed_weights();
     net.feed_forward();
-    net.print_neurons(0);
-    net.print_neurons(3);
+    //net.print_neurons(0);
+    net.print_output(3);
+    let exp = Array1::from(array![0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]);
+    println!("MSE: {}", net.mse(&exp));
+    net.backprop(&exp);
 }
 
 fn _test_init_nn() {
@@ -29,7 +31,7 @@ fn _test_init_nn() {
     net.seed_weights();
     net.load_neurons(0, array![0.5, 0.25]);
     net.feed_forward();
-    net.feed_forward()
+    net.print_output(2);
 }
 
 fn _test_load() {
@@ -45,15 +47,5 @@ fn _print_mnist_input(input: Array1<f32>) {
         if i % 28 == 0 {
             println!();
         }
-    }
-}
-
-fn _test_mse() {
-    //0.25, 0.6, 0.3, 0.4, 0.1, 0.8, 0.75, 0.3, 0.4, 0.2
-    let mut net = init_nn(vec![784, 16, 16, 10]);
-    let input: Array1<f32> = Array1::from(array![0.25, 0.6, 0.3, 0.4, 0.1, 0.8, 0.75, 0.3, 0.4, 0.2]);
-    net.load_neurons(3, input);
-    for i in 0..10 {
-        println!("MSE of {}: {}", i, net.mse(i));
     }
 }
