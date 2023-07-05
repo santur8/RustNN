@@ -18,7 +18,7 @@ fn _train_mnist(net: &mut NeuralNet) {
     let mut count = 0;
     let mut correct = 0;
     let mut iter = 0;
-    
+
     for idx in 0..60000 {
         count += 1;
         let input = load_train_img(&idx);
@@ -42,7 +42,19 @@ fn _train_mnist(net: &mut NeuralNet) {
 }
 
 fn _test_mnist(net: &mut NeuralNet) {
-
+    let mut correct = 0;
+    for idx in 0..10000 {
+        let input = load_test_img(&idx);
+        let label = load_test_label(&idx);
+        net.load_neurons(0, input);
+        net.feed_forward();
+        let output = mnist_output(net.get_output());
+        if output == label {
+            correct += 1;
+        }
+    }
+    let avg = (correct as f32) / (10000 as f32);
+    println!("Testing accuracy: {:.4}", avg);
 }
 
 fn _test_init_nn() {
