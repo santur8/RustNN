@@ -9,6 +9,7 @@ mod neuralnet;
 
 fn main() {
     let mut net = init_nn(vec![784, 16, 16, 10]);
+    init_mnist_buffers();
     _train_mnist(&mut net);
     _test_mnist(&mut net);
 }
@@ -18,25 +19,27 @@ fn _train_mnist(net: &mut NeuralNet) {
     let mut count = 0;
     let mut correct = 0;
     let mut iter = 0;
-
-    for idx in 0..60000 {
-        count += 1;
-        let input = load_train_img(&idx);
-        let label = load_train_label(&idx);
-        net.load_neurons(0, input);
-        net.feed_forward();
-        let exp = gen_exp_output(label);
-        let output = mnist_output(net.get_output());
-        //println!("MSE: {:.3} --- EXP: {} --- Output: {}", net.mse(&exp), label, output);
-        net.backprop(&exp);
-
-        if output == label {
-            correct += 1;
-        }
-        if count % 1000 == 0 {
-            iter += 1;
-            let avg = (correct as f32) / (count as f32);
-            println!("Iteration {}: {:.3} correct", iter, avg);
+    let mut avg = 0.0;
+    while avg < 0.85 {
+        for idx in 0..60000 {
+            count += 1;
+            let input = load_train_img_mnist(&idx);
+            let label = load_train_label_mnist(&idx);
+            net.load_neurons(0, input);
+            net.feed_forward();
+            let exp = gen_exp_output(label);
+            let output = mnist_output(net.get_output());
+            //println!("MSE: {:.3} --- EXP: {} --- Output: {}", net.mse(&exp), label, output);
+            net.backprop(&exp);
+    
+            if output == label {
+                correct += 1;
+            }
+            if count % 1000 == 0 {
+                iter += 1;
+                avg = (correct as f32) / (count as f32);
+                println!("Iteration {}: {:.3} correct", iter, avg);
+            }
         }
     }
 }
@@ -44,11 +47,10 @@ fn _train_mnist(net: &mut NeuralNet) {
 fn _test_mnist(net: &mut NeuralNet) {
     let mut correct = 0;
     for idx in 0..10000 {
-        let input = load_test_img(&idx);
-        let label = load_test_label(&idx);
+        let input = load_test_img_mnist(&idx);
+        let label = load_test_label_mnist(&idx);
         net.load_neurons(0, input);
         net.feed_forward();
-        net.print_output(3);
         let output = mnist_output(net.get_output());
         if output == label {
             correct += 1;
@@ -129,10 +131,10 @@ fn _test_xor(net: &mut NeuralNet) {
 }
 
 fn _test_load() {
-    let idx = 0;
-    let input: Array1<f32> = load_test_img(&idx);
+    let idx = 2;
+    let input: Array1<f32> = load_train_img_mnist(&idx);
     _print_mnist_input(&input);
-    println!("{}", load_train_label(&idx));
+    println!("{}", load_train_label_mnist(&idx));
 }
 
 fn _print_mnist_input(input: &Array1<f32>) {

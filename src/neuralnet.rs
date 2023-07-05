@@ -167,7 +167,7 @@ pub fn init_nn(lengths: Vec<usize>) -> NeuralNet {
         eprintln!("Invalid neural net size. Exiting.");
         std::process::exit(-1);
     }
-    let mut net = NeuralNet { size: lengths.len(), layers: std::vec!{}, learning_rate: 0.5 };
+    let mut net = NeuralNet { size: lengths.len(), layers: std::vec!{}, learning_rate: 0.75 };
     for i in 0..lengths.len() {
         let mut prev = 0;
         if i != 0 {

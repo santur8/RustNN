@@ -46,17 +46,38 @@ TEST SET IMAGE FILE (t10k-images-idx3-ubyte):
 xxxx     unsigned byte   ??               pixel
 */
 
-use std::io::{Read, Seek, SeekFrom};
+use std::io::Read;
 use std::fs::File;
 use ndarray::Array1;
 
-pub fn load_train_img(idx: &u32) -> Array1<f32> {
-    let offset = 16 + (784 * idx);
-    let mut buf = [0u8; 784];
-    let mut file = File::open("dataset/digs/train-images-idx3-ubyte")
+static mut TRAIN_EXAMPLE_BUF: [u8; 47040016] = [0u8; 47040016];
+static mut TRAIN_LABEL_BUF: [u8; 60008] = [0u8; 60008];
+static mut TEST_EXAMPLE_BUF: [u8; 7840016] = [0u8; 7840016];
+static mut TEST_LABEL_BUF: [u8; 10008] = [0u8; 10008];
+
+pub fn init_mnist_buffers() {
+    let mut train_ex = File::open("dataset/digs/train-images-idx3-ubyte")
         .expect("Invalid path");
-    let _ = file.seek(SeekFrom::Start(u64::from(offset)));
-    file.read_exact(&mut buf).expect("Error reading file");
+    let mut train_label = File::open("dataset/digs/train-labels-idx1-ubyte")
+        .expect("Invalid path");
+    let mut test_ex = File::open("dataset/digs/t10k-images-idx3-ubyte")
+        .expect("Invalid path");
+    let mut test_label = File::open("dataset/digs/t10k-labels-idx1-ubyte")
+        .expect("Invalid path");
+    unsafe {
+        train_ex.read_exact(&mut TRAIN_EXAMPLE_BUF).expect("Failed");
+        train_label.read_exact(&mut TRAIN_LABEL_BUF).expect("Failed");
+        test_ex.read_exact(&mut TEST_EXAMPLE_BUF).expect("Failed");
+        test_label.read_exact(&mut TEST_LABEL_BUF).expect("Failed");
+    }
+}
+
+pub fn load_train_img_mnist(idx: &u32) -> Array1<f32> {
+    let offset: usize = 16 + (784 * idx) as usize;
+    let buf: &[u8];
+    unsafe {
+        buf = &TRAIN_EXAMPLE_BUF[offset..offset+784];
+    }
     let norm = norm(buf);
     let mut img: Array1<f32> = Array1::zeros(784);
     for i in 0..784 {
@@ -65,24 +86,22 @@ pub fn load_train_img(idx: &u32) -> Array1<f32> {
     return img;
 }
 
-pub fn load_train_label(idx: &u32) -> usize {
-    let offset = 8 + idx;
-    let mut buf = [0u8; 1];
-    let mut file = File::open("dataset/digs/train-labels-idx1-ubyte")
-        .expect("Invalid path");
-    let _ = file.seek(SeekFrom::Start(u64::from(offset)));
-    file.read_exact(&mut buf).expect("Error reading file");
-    let label = usize::from(buf[0]);
+pub fn load_train_label_mnist(idx: &u32) -> usize {
+    let offset: usize = (8 + idx) as usize;
+    let label: u8;
+    unsafe {
+        label = TRAIN_LABEL_BUF[offset];
+    }
+    let label= label as usize;
     return label;
 }
 
-pub fn load_test_img(idx: &u32) -> Array1<f32> {
-    let offset = 16 + (784 * idx);
-    let mut buf = [0u8; 784];
-    let mut file = File::open("dataset/digs/t10k-images-idx3-ubyte")
-        .expect("Invalid path");
-    let _ = file.seek(SeekFrom::Start(u64::from(offset)));
-    file.read_exact(&mut buf).expect("Error reading file");
+pub fn load_test_img_mnist(idx: &u32) -> Array1<f32> {
+    let offset: usize = 16 + (784 * idx) as usize;
+    let buf: &[u8];
+    unsafe {
+        buf = &TEST_EXAMPLE_BUF[offset..offset+784];
+    }
     let norm = norm(buf);
     let mut img: Array1<f32> = Array1::zeros(784);
     for i in 0..784 {
@@ -91,21 +110,20 @@ pub fn load_test_img(idx: &u32) -> Array1<f32> {
     return img;
 }
 
-pub fn load_test_label(idx: &u32) -> usize {
-    let offset = 8 + idx;
-    let mut buf = [0u8; 1];
-    let mut file = File::open("dataset/digs/t10k-labels-idx1-ubyte")
-        .expect("Invalid path");
-    let _ = file.seek(SeekFrom::Start(u64::from(offset)));
-    file.read_exact(&mut buf).expect("Error reading file");
-    let label = usize::from(buf[0]);
+pub fn load_test_label_mnist(idx: &u32) -> usize {
+    let offset: usize = (8 + idx) as usize;
+    let label: u8;
+    unsafe {
+        label = TEST_LABEL_BUF[offset];
+    }
+    let label= label as usize;
     return label;
 }
 
-fn norm(buf: [u8; 784]) -> [f32; 784] {
+fn norm(buf: &[u8]) -> [f32; 784] {
     let mut norm_buf = [0f32; 784];
     for i in 0..784 {
-        let f = f32::from(buf[i]);
+        let f = buf[i] as f32;
         norm_buf[i] = f / 255f32;
     }
     return norm_buf;
@@ -120,7 +138,6 @@ pub fn gen_exp_output(label: usize) -> Array1<f32> {
 pub fn mnist_output(output: &Array1<f32>) -> usize {
     let mut max = -1.0;
     let mut max_idx: usize = 100;
-    let i: i32 = 0;
     for i in 0..10 {
         if output[i] > max {
             max = output[i];
