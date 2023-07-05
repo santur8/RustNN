@@ -58,15 +58,6 @@ pub fn load_train_img(idx: &u32) -> Array1<f32> {
     let _ = file.seek(SeekFrom::Start(u64::from(offset)));
     file.read_exact(&mut buf).expect("Error reading file");
     let norm = norm(buf);
-    
-    // Debug print loop to print loaded data
-    // for i in 0..784 {
-    //     if i % 28 == 0 {
-    //         println!();
-    //     }
-    //     print!("{:.1} ", norm[i]);
-    // }
-
     let mut img: Array1<f32> = Array1::zeros(784);
     for i in 0..784 {
         img[i] = norm[i];
@@ -75,6 +66,32 @@ pub fn load_train_img(idx: &u32) -> Array1<f32> {
 }
 
 pub fn load_train_label(idx: &u32) -> usize {
+    let offset = 8 + idx;
+    let mut buf = [0u8; 1];
+    let mut file = File::open("dataset/digs/train-labels-idx1-ubyte")
+        .expect("Invalid path");
+    let _ = file.seek(SeekFrom::Start(u64::from(offset)));
+    file.read_exact(&mut buf).expect("Error reading file");
+    let label = usize::from(buf[0]);
+    return label;
+}
+
+pub fn load_test_img(idx: &u32) -> Array1<f32> {
+    let offset = 16 + (784 * idx);
+    let mut buf = [0u8; 784];
+    let mut file = File::open("dataset/digs/t10k-images-idx3-ubyte")
+        .expect("Invalid path");
+    let _ = file.seek(SeekFrom::Start(u64::from(offset)));
+    file.read_exact(&mut buf).expect("Error reading file");
+    let norm = norm(buf);
+    let mut img: Array1<f32> = Array1::zeros(784);
+    for i in 0..784 {
+        img[i] = norm[i];
+    }
+    return img;
+}
+
+pub fn load_test_label(idx: &u32) -> usize {
     let offset = 8 + idx;
     let mut buf = [0u8; 1];
     let mut file = File::open("dataset/digs/train-labels-idx1-ubyte")

@@ -15,19 +15,34 @@ fn main() {
 
 fn _train_mnist(net: &mut NeuralNet) {
     net.seed_weights();
+    let mut count = 0;
+    let mut correct = 0;
+    let mut iter = 0;
+    
     for idx in 0..60000 {
+        count += 1;
         let input = load_train_img(&idx);
         let label = load_train_label(&idx);
         net.load_neurons(0, input);
         net.feed_forward();
         let exp = gen_exp_output(label);
-        println!("MSE: {:.3} --- EXP: {} --- Output: {}", net.mse(&exp), label, mnist_output(net.get_output()));
+        let output = mnist_output(net.get_output());
+        //println!("MSE: {:.3} --- EXP: {} --- Output: {}", net.mse(&exp), label, output);
         net.backprop(&exp);
+
+        if output == label {
+            correct += 1;
+        }
+        if count % 1000 == 0 {
+            iter += 1;
+            let avg = (correct as f32) / (count as f32);
+            println!("Iteration {}: {:.3} correct", iter, avg);
+        }
     }
 }
 
 fn _test_mnist(net: &mut NeuralNet) {
-    
+
 }
 
 fn _test_init_nn() {
