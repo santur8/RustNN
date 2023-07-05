@@ -25,7 +25,7 @@ impl NeuralNet {
         let mut rng = rand::thread_rng();
         for layer in self.layers.iter_mut() {
             for i in 0..layer.len {
-                layer.bias_weights[i] = rng.gen_range(-1.0..1.0);
+                layer.bias_weights[i] = 0.0;
                 for j in 0..layer.incoming {
                     layer.weights[[i, j]] = rng.gen_range(-1.0..1.0);
                 }
@@ -44,7 +44,8 @@ impl NeuralNet {
             eprintln!("Invalid length for neuron load. Exiting.");
             std::process::exit(-1);
         }
-        layer.output = input;
+        layer.activations = input;
+        layer.output = layer.activations.clone();
     }
 
     /* propagate network's values forward */
@@ -55,12 +56,15 @@ impl NeuralNet {
                 let input = &self.layers[layer_idx-1].output;
                 let weights = &self.layers[layer_idx].weights.row(neuron_idx);
                 let mut prod = weights.dot(input);
-                //prod += 1.0 * &self.layers[layer_idx].bias_weights[neuron_idx];
+                prod += 1.0 * &self.layers[layer_idx].bias_weights[neuron_idx];
                 self.layers[layer_idx].activations[neuron_idx] = prod;
                 prod = sigmoid(prod);
                 self.layers[layer_idx].output[neuron_idx] = prod;
             }
         }
+        //self.print_output(1);
+        //self.print_output(2);
+        //self.print_output(3);
     }
 
     /* print layer of network */
@@ -70,7 +74,7 @@ impl NeuralNet {
             std::process::exit(-1); 
         }
         for value in &self.layers[layer_idx].output {
-            print!("{}, ", value);
+            print!("{:.3}, ", value);
         }
         println!();
     }
@@ -83,14 +87,16 @@ impl NeuralNet {
         }
         let out = &self.layers[self.size-1].output;
         let mut err: f32 = 0.0;
+        let mut cnt = 0.0;
         for i in 0..out.len() {
+            cnt += 1.0;
             err += (expected[i] - out[i]).powf(2.0);
         }
-        let err = err / 10.0;
-        return err;
+        //err = err / 10.0;
+        return err / cnt;
     }
 
-    /* given expected output layer, update weights according to  */
+    /* given expected output layer, update weights according to error function  */
     pub fn backprop(&mut self, expected: &Array1<f32>) {
         if expected.len() != self.layers[self.size-1].activations.len() {
             eprintln!("Expected vector does not match output layer size. Exiting.");
@@ -105,8 +111,10 @@ impl NeuralNet {
             let mut err = output_layer.output[idx] - expected[idx];
             err *= sigmoid_prime(output_layer.activations[idx]);
             output_layer.errors[idx] = err;
+            //println!("activ: {:.3}\nsigmoid prime: {:.3}\nout err: {:.3}", output_layer.activations[idx], sigmoid_prime(output_layer.activations[idx]), err);
         }
-        //println!("{:?}", output_layer.errors);
+        //println!("a: {}, exp: {}, act: {}, sigp: {}", output_layer.activations[0], expected[0], output_layer.output[0], sigmoid_prime(output_layer.activations[0]));
+        //println!("OUTPUT LAYER ERR: {:?}", output_layer.errors);
 
         // propagate error terms for previous layers
         for layer_idx in (1..self.size-1).rev() {
@@ -116,19 +124,31 @@ impl NeuralNet {
                 let err = weights.dot(errors) * sigmoid_prime(layers[layer_idx].activations[idx]);
                 layers[layer_idx].errors[idx] = err;
             }
-            //println!("{:?}", layers[layer_idx].errors);
+            //println!("hidden errors: {:?}", layers[layer_idx].errors);
         }
 
-        // update partial derivs for each weight
+        // update each weight with partial deriv
         for layer_idx in (1..self.size).rev() {
             for neuron_idx in 0..layers[layer_idx].len {
                 for weight_idx in 0..layers[layer_idx].incoming {
-                    let grad = layers[layer_idx].errors[neuron_idx] * layers[layer_idx-1].output[weight_idx];
-                    layers[layer_idx].weights_grad[[neuron_idx, weight_idx]] += grad;
-                    // this prob wrong
+                    let err = layers[layer_idx].errors[neuron_idx];
+                    let weight = layers[layer_idx-1].output[weight_idx];
+                    let grad = err * weight;
+                    layers[layer_idx].weights[[neuron_idx, weight_idx]] += grad * -self.learning_rate;
                 }
             }
-            //println!("{:?}\n", layers[layer_idx].weights_grad);
+            //println!("layer {} weights:\n {:?}", layer_idx, layers[layer_idx].weights);
+        }
+
+        for layer_idx in (1..self.size).rev() {
+            for neuron_idx in 0..layers[layer_idx].len {
+                for bias_weight_idx in 0..layers[layer_idx].bias_weights.len() {
+                    let err = layers[layer_idx].errors[neuron_idx];
+                    let weight = layers[layer_idx].bias_weights[bias_weight_idx];
+                    let grad = err * weight;
+                    layers[layer_idx].bias_weights[bias_weight_idx] += grad * -self.learning_rate;
+                }
+            }
         }
     }
 
@@ -144,6 +164,10 @@ impl NeuralNet {
             }
         }
     }
+
+    pub fn get_output(&self) -> &Array1<f32> {
+        return &self.layers[self.size-1].output;
+    }
 }
 
 pub fn init_nn(lengths: Vec<usize>) -> NeuralNet {
@@ -151,7 +175,7 @@ pub fn init_nn(lengths: Vec<usize>) -> NeuralNet {
         eprintln!("Invalid neural net size. Exiting.");
         std::process::exit(-1);
     }
-    let mut net = NeuralNet { size: lengths.len(), layers: std::vec!{}, learning_rate: 0.01 };
+    let mut net = NeuralNet { size: lengths.len(), layers: std::vec!{}, learning_rate: 0.5 };
     for i in 0..lengths.len() {
         let mut prev = 0;
         if i != 0 {

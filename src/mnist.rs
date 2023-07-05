@@ -78,3 +78,16 @@ pub fn gen_exp_output(label: usize) -> Array1<f32> {
     arr[label] = 1.0;
     return arr;
 }
+
+pub fn mnist_output(output: &Array1<f32>) -> usize {
+    let mut max = -1.0;
+    let mut max_idx: usize = 100;
+    let i: i32 = 0;
+    for i in 0..10 {
+        if output[i] > max {
+            max = output[i];
+            max_idx = i;
+        }
+    }
+    return max_idx;
+}
