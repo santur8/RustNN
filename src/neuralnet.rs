@@ -62,9 +62,6 @@ impl NeuralNet {
                 self.layers[layer_idx].output[neuron_idx] = prod;
             }
         }
-        //self.print_output(1);
-        //self.print_output(2);
-        //self.print_output(3);
     }
 
     /* print layer of network */
@@ -92,7 +89,6 @@ impl NeuralNet {
             cnt += 1.0;
             err += (expected[i] - out[i]).powf(2.0);
         }
-        //err = err / 10.0;
         return err / cnt;
     }
 
@@ -111,10 +107,7 @@ impl NeuralNet {
             let mut err = output_layer.output[idx] - expected[idx];
             err *= sigmoid_prime(output_layer.activations[idx]);
             output_layer.errors[idx] = err;
-            //println!("activ: {:.3}\nsigmoid prime: {:.3}\nout err: {:.3}", output_layer.activations[idx], sigmoid_prime(output_layer.activations[idx]), err);
         }
-        //println!("a: {}, exp: {}, act: {}, sigp: {}", output_layer.activations[0], expected[0], output_layer.output[0], sigmoid_prime(output_layer.activations[0]));
-        //println!("OUTPUT LAYER ERR: {:?}", output_layer.errors);
 
         // propagate error terms for previous layers
         for layer_idx in (1..self.size-1).rev() {
@@ -124,7 +117,6 @@ impl NeuralNet {
                 let err = weights.dot(errors) * sigmoid_prime(layers[layer_idx].activations[idx]);
                 layers[layer_idx].errors[idx] = err;
             }
-            //println!("hidden errors: {:?}", layers[layer_idx].errors);
         }
 
         // update each weight with partial deriv
@@ -137,9 +129,9 @@ impl NeuralNet {
                     layers[layer_idx].weights[[neuron_idx, weight_idx]] += grad * -self.learning_rate;
                 }
             }
-            //println!("layer {} weights:\n {:?}", layer_idx, layers[layer_idx].weights);
         }
-
+        
+        // update biases for each node
         for layer_idx in (1..self.size).rev() {
             for neuron_idx in 0..layers[layer_idx].len {
                 for bias_weight_idx in 0..layers[layer_idx].bias_weights.len() {
