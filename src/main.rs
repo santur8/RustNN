@@ -48,11 +48,13 @@ fn _test_mnist(net: &mut NeuralNet) {
         let label = load_test_label(&idx);
         net.load_neurons(0, input);
         net.feed_forward();
+        net.print_output(3);
         let output = mnist_output(net.get_output());
         if output == label {
             correct += 1;
         }
     }
+    println!("correct count: {}", correct);
     let avg = (correct as f32) / (10000 as f32);
     println!("Testing accuracy: {:.4}", avg);
 }
@@ -127,8 +129,8 @@ fn _test_xor(net: &mut NeuralNet) {
 }
 
 fn _test_load() {
-    let idx = 784;
-    let input: Array1<f32> = load_train_img(&idx);
+    let idx = 0;
+    let input: Array1<f32> = load_test_img(&idx);
     _print_mnist_input(&input);
     println!("{}", load_train_label(&idx));
 }

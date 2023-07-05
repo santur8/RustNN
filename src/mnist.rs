@@ -94,7 +94,7 @@ pub fn load_test_img(idx: &u32) -> Array1<f32> {
 pub fn load_test_label(idx: &u32) -> usize {
     let offset = 8 + idx;
     let mut buf = [0u8; 1];
-    let mut file = File::open("dataset/digs/train-labels-idx1-ubyte")
+    let mut file = File::open("dataset/digs/t10k-labels-idx1-ubyte")
         .expect("Invalid path");
     let _ = file.seek(SeekFrom::Start(u64::from(offset)));
     file.read_exact(&mut buf).expect("Error reading file");
