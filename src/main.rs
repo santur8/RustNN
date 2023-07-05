@@ -44,6 +44,7 @@ fn train_mnist(net: &mut NeuralNet) {
         iter += 1;
         println!("ITERATION {} -- CORRECT: {} -- INCORRECT: {} -- ACCURACY: {} -- ALPHA: {}", iter, correct, incorrect, avg, rate);
         correct = 0;
+        incorrect = 0;
         rate /= 2.0;
         if rate < 0.1 { rate = 0.1; }
     }
