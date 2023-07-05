@@ -25,9 +25,9 @@ impl NeuralNet {
         let mut rng = rand::thread_rng();
         for layer in self.layers.iter_mut() {
             for i in 0..layer.len {
-                layer.bias_weights[i] = 0.0;
+                layer.bias_weights[i] = rng.gen_range(-0.1..0.1);
                 for j in 0..layer.incoming {
-                    layer.weights[[i, j]] = rng.gen_range(-1.0..1.0);
+                    layer.weights[[i, j]] = rng.gen_range(-0.5..0.5);
                 }
             }
         }
@@ -160,6 +160,10 @@ impl NeuralNet {
     pub fn get_output(&self) -> &Array1<f32> {
         return &self.layers[self.size-1].output;
     }
+
+    pub fn update_learing_rate(&mut self, rate: f32) {
+        self.learning_rate = rate;
+    }
 }
 
 pub fn init_nn(lengths: Vec<usize>) -> NeuralNet {
@@ -167,7 +171,7 @@ pub fn init_nn(lengths: Vec<usize>) -> NeuralNet {
         eprintln!("Invalid neural net size. Exiting.");
         std::process::exit(-1);
     }
-    let mut net = NeuralNet { size: lengths.len(), layers: std::vec!{}, learning_rate: 0.75 };
+    let mut net = NeuralNet { size: lengths.len(), layers: std::vec!{}, learning_rate: 0.1 };
     for i in 0..lengths.len() {
         let mut prev = 0;
         if i != 0 {

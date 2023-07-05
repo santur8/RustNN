@@ -16,13 +16,14 @@ fn main() {
 
 fn train_mnist(net: &mut NeuralNet) {
     net.seed_weights();
-    let mut count = 0;
+    let mut rate = 0.75;
     let mut correct = 0;
+    let mut incorrect = 0;
     let mut iter = 0;
     let mut avg = 0.0;
-    while avg < 0.85 {
+    while avg < 0.95 {
+        net.update_learing_rate(rate);
         for idx in 0..60000 {
-            count += 1;
             let input = load_train_img_mnist(&idx);
             let label = load_train_label_mnist(&idx);
             net.load_neurons(0, input);
@@ -34,13 +35,17 @@ fn train_mnist(net: &mut NeuralNet) {
     
             if output == label {
                 correct += 1;
-            }
-            if count % 1000 == 0 {
-                iter += 1;
-                avg = (correct as f32) / (count as f32);
-                println!("Iteration {}: {:.3} correct", iter, avg);
+            } else {
+                incorrect += 1;
+                //println!("WRONG --- EXPECTED: {}, GUESS: {}", label, output);
             }
         }
+        avg = (correct as f32) / 60000.0;
+        iter += 1;
+        println!("ITERATION {} -- CORRECT: {} -- INCORRECT: {} -- ACCURACY: {} -- ALPHA: {}", iter, correct, incorrect, avg, rate);
+        correct = 0;
+        rate /= 2.0;
+        if rate < 0.1 { rate = 0.1; }
     }
 }
 
@@ -56,7 +61,6 @@ fn test_mnist(net: &mut NeuralNet) {
             correct += 1;
         }
     }
-    println!("correct count: {}", correct);
     let avg = (correct as f32) / (10000 as f32);
     println!("Testing accuracy: {:.4}", avg);
 }
@@ -111,7 +115,7 @@ fn _train_xor() {
 fn _test_xor(net: &mut NeuralNet) {
     let mut rng = rand::thread_rng();
     let mut count = 0;
-    for i in 0..1000 {
+    for _i in 0..1000 {
         let i1: i32 = rng.gen_range(0..=1);
         let i2: i32 = rng.gen_range(0..=1);
         let out = i1 ^ i2;
