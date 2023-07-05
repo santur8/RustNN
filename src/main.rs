@@ -10,11 +10,11 @@ mod neuralnet;
 fn main() {
     let mut net = init_nn(vec![784, 16, 16, 10]);
     init_mnist_buffers();
-    _train_mnist(&mut net);
-    _test_mnist(&mut net);
+    train_mnist(&mut net);
+    test_mnist(&mut net);
 }
 
-fn _train_mnist(net: &mut NeuralNet) {
+fn train_mnist(net: &mut NeuralNet) {
     net.seed_weights();
     let mut count = 0;
     let mut correct = 0;
@@ -44,7 +44,7 @@ fn _train_mnist(net: &mut NeuralNet) {
     }
 }
 
-fn _test_mnist(net: &mut NeuralNet) {
+fn test_mnist(net: &mut NeuralNet) {
     let mut correct = 0;
     for idx in 0..10000 {
         let input = load_test_img_mnist(&idx);
